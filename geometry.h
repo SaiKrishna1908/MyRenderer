@@ -5,6 +5,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// A structure equavilent to Point(x,y)
 template <class t> struct Vec2 {
 	union {
 		struct {t u, v;};
@@ -19,6 +20,8 @@ template <class t> struct Vec2 {
 	template <class > friend std::ostream& operator<<(std::ostream& s, Vec2<t>& v);
 };
 
+
+// A structure equavilent to Point(x,y,z)
 template <class t> struct Vec3 {
 	union {
 		struct {t x, y, z;};
@@ -37,10 +40,14 @@ template <class t> struct Vec3 {
 	template <class > friend std::ostream& operator<<(std::ostream& s, Vec3<t>& v);
 };
 
+// Define different types of vectors
+
 typedef Vec2<float> Vec2f;
 typedef Vec2<int>   Vec2i;
 typedef Vec3<float> Vec3f;
 typedef Vec3<int>   Vec3i;
+
+// cout for vec2
 
 template <class t> std::ostream& operator<<(std::ostream& s, Vec2<t>& v) {
 	s << "(" << v.x << ", " << v.y << ")\n";
