@@ -27,8 +27,10 @@ struct TGAColor {
 		struct {
 			unsigned char b, g, r, a;
 		};
-		unsigned char raw[4];
-		unsigned int val;
+	  unsigned char raw[4];
+	  
+	  // contains the value of the pixel
+	  unsigned int val;
 	};
 	int bytespp;
 
@@ -61,6 +63,8 @@ struct TGAColor {
 
 
 class TGAImage {
+
+// Data
 protected:
 	unsigned char* data;
 	int width;
