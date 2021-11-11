@@ -92,23 +92,36 @@ void drawtriangle(Vec2i points[], TGAImage &image, TGAColor color) {
 
 }
 
+float getArea(Vec2i points[]) {
+
+	int x1 = points[0].x;
+	int y1 = points[0].y;
+	int x2 = points[1].x;
+	int y2 = points[1].y;
+	int x3 = points[2].x;
+	int y3 = points[2].y;
+
+	return 0.5*abs(x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2));
+}
+
 void filltriangle(Vec2i points[], TGAImage &image, TGAColor color) {
 
-	// we will start painting when we touch a point which is already colored and stop until we get other colored point
+	int a = getArea(points);
 
-	int maxx= max(points[0].x, max(points[1].x, points[2].x));
-	int minx= min(points[0].x, min(points[1].x, points[2].x));
-	int maxy= max(points[0].y, max(points[1].y, points[2].y));
-	int miny= min(points[0].y, min(points[1].y, points[2].y));
-	
-	bool fill = false;
+	for(int i=0;i<HEIGHT;i++) {
+		for(int j=0;j<WIDTH;j++) {
 
-	for(int i=minx;i<maxx;i++) {
-		for(int j=miny;j<maxy;j++) {
-			if(image.get(i,j).val !=0) {
-				fill=!fill;
-			}
-			if (fill) {
+			Vec2i seta[] = {points[0],points[1],Vec2i(i,j)};
+			Vec2i setb[] = {points[1], points[2],Vec2i(i,j)};
+			Vec2i setc[] = {points[0], points[2], Vec2i(i,j)};
+
+			float a1 = getArea(seta);
+			float a2 = getArea(setb);
+			float a3 = getArea(setc);
+
+			// cout<<a1<<" "<<a2<<" "<<a3<<" "<<endl;
+
+			if ((int)a1+a2+a3 == (int)a) {
 				image.set(i,j,color);
 			}
 		}
@@ -128,31 +141,37 @@ int main(int argc, char** argv) {
     model = new Model("./obj/african_head.obj");
   }
 
+  /*
+  
   // Draw lines from vertices and faces
-  // for(int i=0;i<model->nfaces();i++) {
-  //   std::vector<int> face = model->face(i);
+  for(int i=0;i<model->nfaces();i++) {
+    std::vector<int> face = model->face(i);
 
-  //   for(int j=0;j<3;j++) {
+    for(int j=0;j<3;j++) {
 
-  //     Vec3f v0 = model->vert(face[j]);
-  //     Vec3f v1 = model->vert(face[(j+1)%3]);
-  //     int x0 = (v0.x+1)*WIDTH/2;
-  //     int y0 = (v0.y+1)*HEIGHT/2;
-  //     int x1 = (v1.x+1)*WIDTH/2;
-  //     int y1 = (v1.y+1)*HEIGHT/2;
+      Vec3f v0 = model->vert(face[j]);
+      Vec3f v1 = model->vert(face[(j+1)%3]);
+      int x0 = (v0.x+1)*WIDTH/2;
+      int y0 = (v0.y+1)*HEIGHT/2;
+      int x1 = (v1.x+1)*WIDTH/2;
+      int y1 = (v1.y+1)*HEIGHT/2;
       
-  //     drawline(x0,y0,x1,y1,image,white);
-  //   }
-  // }
-
+      drawline(x0,y0,x1,y1,image,white);
+    }
+  }
+	
+	*/
   // display_pixels(image);
   Vec2i t0[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)}; 
 	Vec2i t1[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)}; 
 	Vec2i t2[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)}; 
 
-  drawtriangle(t0, image, red); 
+  drawtriangle(t0, image, red);
+  filltriangle(t0,image, red); 
 	drawtriangle(t1, image, white); 
+	filltriangle(t1,image,white);
 	drawtriangle(t2, image, green);
+	filltriangle(t2,image,green);
   image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
   image.write_tga_file("output.tga");
   return 0;
