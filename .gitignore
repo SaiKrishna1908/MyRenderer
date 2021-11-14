@@ -32,5 +32,5 @@
 *.app
 
 #custom
-
 output.tga
+main

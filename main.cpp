@@ -83,48 +83,56 @@ void drawtriangle(Vec2i points[], TGAImage &image, TGAColor color) {
 		drawline(points[i].x,points[i].y, points[(i+1)%3].x, points[(i+1)%3].y, image, color);
 		
 	}
-
 	filltriangle(points, image, color);
-
-	// drawline(p1.x,p1.y,p2.x,p2.y,image,color);
-	// drawline(p2.x,p2.y,p3.x,p3.y,image,color);
-	// drawline(p3.x,p3.y,p1.x,p1.y,image,color);
-
 }
 
-float getArea(Vec2i points[]) {
-
-	int x1 = points[0].x;
-	int y1 = points[0].y;
-	int x2 = points[1].x;
-	int y2 = points[1].y;
-	int x3 = points[2].x;
-	int y3 = points[2].y;
-
-	return 0.5*abs(x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2));
-}
+// Routine to Fill a triangle with a color
 
 void filltriangle(Vec2i points[], TGAImage &image, TGAColor color) {
 
-	int a = getArea(points);
+	// sort the points in ascending order of y co-ordinate
 
-	for(int i=0;i<HEIGHT;i++) {
-		for(int j=0;j<WIDTH;j++) {
+	if (points[0].y > points[1].y) std::swap(points[0], points[1]);
+	if (points[0].y > points[2].y) std::swap(points[0], points[2]);
+	if (points[1].y > points[2].y) std::swap(points[1], points[2]);
 
-			Vec2i seta[] = {points[0],points[1],Vec2i(i,j)};
-			Vec2i setb[] = {points[1], points[2],Vec2i(i,j)};
-			Vec2i setc[] = {points[0], points[2], Vec2i(i,j)};
 
-			float a1 = getArea(seta);
-			float a2 = getArea(setb);
-			float a3 = getArea(setc);
+	// Height of least y to highest y
+	int total_height = points[2].y - points[0].y;
 
-			// cout<<a1<<" "<<a2<<" "<<a3<<" "<<endl;
+	for(int y=points[0].y;y<=points[1].y;y++) {
+		// Height between 0 and 1 points
+		int segment_height = points[1].y - points[0].y;
 
-			if ((int)a1+a2+a3 == (int)a) {
-				image.set(i,j,color);
-			}
+		// What is alpha and beta ?
+		float alpha = (float) (y-points[0].y)/total_height;
+		float beta = (float) (y-points[0].y)/segment_height;
+
+		Vec2i A = points[0]+(points[2]-points[0])*alpha;
+		Vec2i B = points[0]+(points[1]-points[0])*beta;
+
+		if (A.x > B.x) std::swap(A,B);
+
+		for(int j=A.x;j<=B.x;j++) {
+			image.set(j,y,color);
+		}		
+	}
+
+	for(int y=points[1].y;y<=points[2].y;y++) {
+		int segment_height = points[2].y - points[1].y;
+
+		float alpha = (float) (y-points[0].y)/total_height;
+		float beta = (float) (y-points[1].y)/segment_height;
+
+		Vec2i A = points[0] + (points[2]-points[0])*alpha;
+		Vec2i B = points[1] + (points[2]-points[1])*beta;
+
+		if (A.x > B.x) std::swap(A,B);
+
+		for(int j=A.x;j<=B.x;j++) {
+			image.set(j,y,color);
 		}
+
 	}
 }
 
@@ -163,8 +171,8 @@ int main(int argc, char** argv) {
 	*/
   // display_pixels(image);
   Vec2i t0[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)}; 
-	Vec2i t1[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)}; 
-	Vec2i t2[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)}; 
+  Vec2i t1[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)}; 
+  Vec2i t2[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)}; 
 
   drawtriangle(t0, image, red);
   filltriangle(t0,image, red); 
