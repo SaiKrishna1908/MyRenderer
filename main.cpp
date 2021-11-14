@@ -75,65 +75,65 @@ void drawline(int x1,int y1, int x2, int y2, TGAImage &image, TGAColor color) {
 
 }
 
-// Routine to draw traingles in a image with given color
+Vec3f barycentric(Vec2i *pts, Vec2i P) {
+	Vec3f u = cross(Vec3f(pts[2][0]-pts[0][0], pts[1][0]-pts[0][0], pts[0][0]-P[0]), Vec3f(pts[2][1]-pts[0][1], pts[1][1]-pts[0][1], pts[0][1]-P[1]));
+	
+	// If u.z is less than one that means triangle is degenerate 
+	if(std::abs(u.z<1)) return Vec3f(-1,1,1);
 
-void drawtriangle(Vec2i points[], TGAImage &image, TGAColor color) {
-
-	for(int i=0;i<3;i++) {
-		drawline(points[i].x,points[i].y, points[(i+1)%3].x, points[(i+1)%3].y, image, color);
-		
-	}
-	filltriangle(points, image, color);
+	// return (1-u-v, u, v)
+	return Vec3f(1.f - (u.x+u.y)/u.z, u.y/u.z, u.x/u.z);
 }
 
-// Routine to Fill a triangle with a color
+// Routine to draw traingles in a image with given color
+void triangle(Vec2i *points,TGAImage &image,TGAColor color) {
 
-void filltriangle(Vec2i points[], TGAImage &image, TGAColor color) {
+	// find the boundingbox which contains the triangle
+	Vec2i bboxmin(image.get_width()-1, image.get_height()-1);
+	Vec2i bboxmax(0,0);
+	Vec2i clamp(image.get_width()-1, image.get_height()-1);
 
-	// sort the points in ascending order of y co-ordinate
-
-	if (points[0].y > points[1].y) std::swap(points[0], points[1]);
-	if (points[0].y > points[2].y) std::swap(points[0], points[2]);
-	if (points[1].y > points[2].y) std::swap(points[1], points[2]);
-
-
-	// Height of least y to highest y
-	int total_height = points[2].y - points[0].y;
-
-	for(int y=points[0].y;y<=points[1].y;y++) {
-		// Height between 0 and 1 points
-		int segment_height = points[1].y - points[0].y;
-
-		// What is alpha and beta ?
-		float alpha = (float) (y-points[0].y)/total_height;
-		float beta = (float) (y-points[0].y)/segment_height;
-
-		Vec2i A = points[0]+(points[2]-points[0])*alpha;
-		Vec2i B = points[0]+(points[1]-points[0])*beta;
-
-		if (A.x > B.x) std::swap(A,B);
-
-		for(int j=A.x;j<=B.x;j++) {
-			image.set(j,y,color);
-		}		
+	for(int i=0;i<3;i++) {
+		bboxmin.x = min(bboxmin.x,points[i].x);
+		bboxmin.y = min(bboxmin.y, points[i].y);
 	}
 
-	for(int y=points[1].y;y<=points[2].y;y++) {
-		int segment_height = points[2].y - points[1].y;
+	for(int i=0;i<3;i++) {
+		bboxmax.x = max(bboxmax.x,points[i].x);
+		bboxmax.y = max(bboxmax.y, points[i].y);
+	}
 
-		float alpha = (float) (y-points[0].y)/total_height;
-		float beta = (float) (y-points[1].y)/segment_height;
+	Vec2i P;
 
-		Vec2i A = points[0] + (points[2]-points[0])*alpha;
-		Vec2i B = points[1] + (points[2]-points[1])*beta;
+	// For each pixel in bounding box check if current pixel is in triangle or not 
+	// using barycentric method
+	for(P.x = bboxmin.x;P.x<=bboxmax.x;P.x++) {
+		for(P.y=bboxmin.y;P.y <=bboxmax.y;P.y++) {
+			Vec3f bc_screen = barycentric(points, P);
 
-		if (A.x > B.x) std::swap(A,B);
-
-		for(int j=A.x;j<=B.x;j++) {
-			image.set(j,y,color);
+			if(bc_screen.x<0||bc_screen.y<0||bc_screen.z<0) continue;
+			image.set(P.x,P.y,color);
 		}
-
 	}
+}
+// Draws a wiremesh of a model (model.h) on Image (image.h)
+void draw_wire_mesh(Model &model, TGAImage &image) {
+
+	for(int i=0;i<model.nfaces();i++) {
+    std::vector<int> face = model.face(i);
+
+    for(int j=0;j<3;j++) {
+
+      Vec3f v0 = model.vert(face[j]);
+      Vec3f v1 = model.vert(face[(j+1)%3]);
+      int x0 = (v0.x+1)*WIDTH/2;
+      int y0 = (v0.y+1)*HEIGHT/2;
+      int x1 = (v1.x+1)*WIDTH/2;
+      int y1 = (v1.y+1)*HEIGHT/2;
+      
+      drawline(x0,y0,x1,y1,image,white);
+    }
+  }
 }
 
 int main(int argc, char** argv) {
@@ -148,38 +148,12 @@ int main(int argc, char** argv) {
   } else {
     model = new Model("./obj/african_head.obj");
   }
-
-  /*
-  
-  // Draw lines from vertices and faces
-  for(int i=0;i<model->nfaces();i++) {
-    std::vector<int> face = model->face(i);
-
-    for(int j=0;j<3;j++) {
-
-      Vec3f v0 = model->vert(face[j]);
-      Vec3f v1 = model->vert(face[(j+1)%3]);
-      int x0 = (v0.x+1)*WIDTH/2;
-      int y0 = (v0.y+1)*HEIGHT/2;
-      int x1 = (v1.x+1)*WIDTH/2;
-      int y1 = (v1.y+1)*HEIGHT/2;
-      
-      drawline(x0,y0,x1,y1,image,white);
-    }
-  }
-	
-	*/
-  // display_pixels(image);
-  Vec2i t0[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)}; 
+  Vec2i t0[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)};
   Vec2i t1[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)}; 
   Vec2i t2[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)}; 
-
-  drawtriangle(t0, image, red);
-  filltriangle(t0,image, red); 
-	drawtriangle(t1, image, white); 
-	filltriangle(t1,image,white);
-	drawtriangle(t2, image, green);
-	filltriangle(t2,image,green);
+  triangle(t0,image,red);
+  triangle(t1,image,green);
+  triangle(t2,image,white);
   image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
   image.write_tga_file("output.tga");
   return 0;
