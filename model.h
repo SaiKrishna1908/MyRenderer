@@ -5,12 +5,14 @@
 #include "geometry.h"
 
 // Model representing the obj file
-class Model {  
+class Model
+{
 private:
-  // Vertices array
+	// Vertices array
 	std::vector<Vec3f> verts_;
-  // Faces array -> A face is a polygon, in our case a 2D triangle make up of 3 vertices (x1,y1) (x2,y2) (x3,y3)
-	std::vector<std::vector<int> > faces_;
+	// Faces array -> A face is a polygon, in our case a 2D triangle make up of 3 vertices (x1,y1) (x2,y2) (x3,y3)
+	std::vector<std::vector<int>> faces_;
+
 public:
 	Model(const char *filename);
 	~Model();
