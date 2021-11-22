@@ -57,52 +57,58 @@ void drawline(int x1, int y1, int x2, int y2, TGAImage &image, TGAColor color)
 }
 
 // Compute barycentric coordinates for a triangle
-Vec3f barycentric(Vec2i *pts, Vec2i P)
+Vec3f barycentric(Vec3f *pts, Vec3f P)
 {
-	Vec3f u = cross(Vec3f(pts[2][0] - pts[0][0], pts[1][0] - pts[0][0], pts[0][0] - P[0]), Vec3f(pts[2][1] - pts[0][1], pts[1][1] - pts[0][1], pts[0][1] - P[1]));
+	Vec3f s[2];
+	for (int i = 2; i--;)
+	{
+		s[i][0] = pts[2][i] - pts[0][i];
+		s[i][1] = pts[1][i] - pts[0][i];
+		s[i][2] = pts[0][i] - P[i];
+	}
 
-	// If u.z is less than one that means triangle is degenerate
-	if (std::abs(u.z < 1))
-		return Vec3f(-1, 1, 1);
+	Vec3f u = cross(s[0], s[1]);
 
-	// return (1-u-v, u, v)
-	return Vec3f(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+	if (std::abs(u[2]) > 1e-2) // dont forget that u[2] is integer. If it is zero then triangle ABC is degenerate
+		return Vec3f(1.f - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z);
+	return Vec3f(-1, 1, 1);
 }
 
 // Routine to draw traingles in a image with given color using barycentric coordinates
-void triangle(Vec2i *points, TGAImage &image, TGAColor color)
+void triangle(Vec3f *points, TGAImage &image, TGAColor color, float *zbuffer)
 {
 
 	// find the boundingbox which contains the triangle
-	Vec2i bboxmin(image.get_width() - 1, image.get_height() - 1);
-	Vec2i bboxmax(0, 0);
-	Vec2i clamp(image.get_width() - 1, image.get_height() - 1);
+	Vec2f bboxmin(image.get_width() - 1, image.get_height() - 1);
+	Vec2f bboxmax(0, 0);
+	Vec2f clamp(image.get_width() - 1, image.get_height() - 1);
 
 	for (int i = 0; i < 3; i++)
 	{
-		bboxmin.x = min(bboxmin.x, points[i].x);
-		bboxmin.y = min(bboxmin.y, points[i].y);
+		for (int j = 0; j < 2; j++)
+		{
+			bboxmin[j] = std::max(0.f, std::min(bboxmin[j], points[i][j]));
+			bboxmax[j] = std::min(clamp[j], std::max(bboxmax[j], points[i][j]));
+		}
 	}
 
-	for (int i = 0; i < 3; i++)
-	{
-		bboxmax.x = max(bboxmax.x, points[i].x);
-		bboxmax.y = max(bboxmax.y, points[i].y);
-	}
+	Vec3f P;
 
-	Vec2i P;
-
-	// For each pixel in bounding box check if current pixel is in triangle or not
-	// using barycentric method
 	for (P.x = bboxmin.x; P.x <= bboxmax.x; P.x++)
 	{
 		for (P.y = bboxmin.y; P.y <= bboxmax.y; P.y++)
 		{
 			Vec3f bc_screen = barycentric(points, P);
-
 			if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)
 				continue;
-			image.set(P.x, P.y, color);
+			P.z = 0;
+			for (int i = 0; i < 3; i++)
+				P.z += points[i][2] * bc_screen[i];
+			if (zbuffer[int(P.x + P.y * image.get_width())] < P.z)
+			{
+				zbuffer[int(P.x + P.y * image.get_width())] = P.z;
+				image.set(P.x, P.y, color);
+			}
 		}
 	}
 }

@@ -35,35 +35,46 @@ void display_pixels(TGAImage image)
 		}
 	}
 }
+// World coordinates to screen coordinates
+Vec3f world2screen(Vec3f v)
+{
+	return Vec3f(int((v.x + 1.) * WIDTH / 2. + .5), int((v.y + 1.) * HEIGHT / 2. + .5), v.z);
+}
 
 // Draws a wiremesh of a model (model.h) on Image (image.h)
-void draw_wire_mesh(Model model, TGAImage &image)
+void draw_wire_mesh(Model *model, TGAImage &image)
 {
 
-	Vec3f light_dir(0, 0, -1);
+	float *zbuffer = new float[WIDTH * HEIGHT];
+	for (int i = WIDTH * HEIGHT; i--; zbuffer[i] = INT_MIN)
+		;
 
-	for (int i = 0; i < model.nfaces(); i++)
+	Vec3f light_dir(0,0,-1);
+	
+	for (int i = 0; i < model->nfaces(); i++)
 	{
-
-		std::vector<int> face = model.face(i);
-		Vec2i screen_coords[3];
+		vector<int> face = model->face(i);
+		Vec3f pts[3];
 		Vec3f world_coords[3];
-		for (int j = 0; j < 3; j++)
-		{
-			Vec3f v0 = model.vert(face[j]);
-			// Screen coords = [(xcoord)*width/2, (ycoord)*height/2]
-			screen_coords[j] = Vec2i((v0.x + 1.) * WIDTH / 2., (v0.y + 1) * HEIGHT / 2.);
-			world_coords[j] = v0;
+
+		for (int j = 0; j < 3; j++) {
+			pts[j] = world2screen(model->vert(face[j]));
+			world_coords[j] = model->vert(face[j]);
 		}
+
+		//TODO: inline Vec3<t> operator ^(const Vec3<t> &v) const { return Vec3<t>(y*v.z-z*v.y, z*v.x-x*v.z, x*v.y-y*v.x); }
 
 		Vec3f n = (world_coords[2] - world_coords[0]) ^ (world_coords[1] - world_coords[0]);
 		n.normalize();
 
-		float intensity = n * light_dir;
+		cout<<n<<endl;
 
-		if (intensity > 0)
-			triangle_with_line(screen_coords[0], screen_coords[1], screen_coords[2], image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
+		float intensity = n*light_dir;
+
+		if(intensity > 0)
+			triangle(pts, image, TGAColor(intensity *  255, intensity * 255, intensity * 255, 255), zbuffer);
 	}
+	
 }
 
 void rasterize(Vec2i v1, Vec2i v2, TGAImage &image, TGAColor color, int ybuffer[])
@@ -103,39 +114,12 @@ int main(int argc, char **argv)
 		model = new Model("./obj/african_head.obj");
 	}
 
-	//   draw_wire_mesh(*model, image);
-	TGAImage scene(WIDTH, HEIGHT, TGAImage::RGB);
-
-	Vec2i v1(20, 34);
-	Vec2i v2(744, 400);
-	Vec2i v3(120, 434);
-	Vec2i v4(444, 400);
-	Vec2i v5(330, 463);
-	Vec2i v6(594, 200);
-
-	// scene "2d mesh"
-	drawline(20, 34, 744, 400, scene, red);
-	drawline(120, 434, 444, 400, scene, green);
-	drawline(330, 463, 594, 200, scene, blue);
-
-	// screen line
-	drawline(10, 10, 790, 10, scene, magenta);
-
-	int ybuffer[WIDTH];
-
-	// initially ybuffer should be negative distance
-	for (int i = 0; i < WIDTH; i++)
-	{
-		ybuffer[i] = INT_MIN;
-	}
-
-	rasterize(Vec2i(20, 34), Vec2i(744, 400), scene, red, ybuffer);
-	rasterize(Vec2i(120, 434), Vec2i(444, 400), scene, green, ybuffer);
-	rasterize(Vec2i(330, 463), Vec2i(594, 200), scene, blue, ybuffer);
-
-	scene.flip_vertically(); // i want to have the origin at the left bottom corner of the image
-	scene.write_tga_file("scene.tga");
-
+	draw_wire_mesh(model, image);
+	// drawline(100,100,100,150,image,red);
+	// drawline(100,150,140,150,image,red);
+	// drawline(140,150,150,140,image,red);
+	// drawline(150,140,150,100,image,red);
+	// drawline(150,100,100,100,image,red);
 	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
 	image.write_tga_file("output.tga");
 	return 0;
