@@ -213,10 +213,33 @@ template <size_t DimRows,size_t DimCols,class T> std::ostream& operator<<(std::o
 
 /////////////////////////////////////////////////////////////////////////////////
 
+const int DEFAULT_ALLOC=4;
+
+class Matrix {
+
+    std::vector<std::vector<float>> m;
+    int rows,cols;
+
+public:
+
+    Matrix(int r=DEFAULT_ALLOC, int c=DEFAULT_ALLOC);
+    inline int nrows();
+    inline int ncols();
+
+    static Matrix identity(int dimensions);
+    std::vector<float>& operator[](const int i);
+    Matrix operator*(const Matrix& a);
+    Matrix transpose();
+    Matrix inverse();
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+
+
 typedef vec<2,  float> Vec2f;
 typedef vec<2,  int>   Vec2i;
 typedef vec<3,  float> Vec3f;
 typedef vec<3,  int>   Vec3i;
 typedef vec<4,  float> Vec4f;
-typedef mat<4,4,float> Matrix;
+// typedef mat<4,4,float> Matrix;
 #endif //__GEOMETRY_H__

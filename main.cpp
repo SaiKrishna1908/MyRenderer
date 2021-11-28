@@ -16,8 +16,12 @@ const TGAColor green = TGAColor(0, 128, 0, 255);
 const TGAColor blue = TGAColor(0, 255, 255, 255);
 const TGAColor magenta = TGAColor(255, 0, 255, 255);
 
-const int HEIGHT = 1024;
-const int WIDTH = 1024;
+const int HEIGHT = 800;
+const int WIDTH = 800;
+const int DEPTH = 225;
+
+Vec3f light_dir(0,0,-1);
+Vec3f camera(0,0,3);
 
 // Print Pixel values
 void display_pixels(TGAImage image)
@@ -41,6 +45,36 @@ Vec3f world2screen(Vec3f v)
 	return Vec3f(int((v.x + 1.) * WIDTH / 2. + .5), int((v.y + 1.) * HEIGHT / 2. + .5), v.z);
 }
 
+// Matrix to viewport
+// TODO: why do this ?
+
+Vec3f m2v(Matrix m) {
+	return Vec3f(m[0][0]/m[3][0], m[1][0]/m[3][0], m[2][0]/m[3][0]);
+}
+
+Matrix v2m(Vec3f v) {
+	Matrix m(4,1);
+	m[0][0] = v.x;
+	m[1][0] = v.y;
+	m[2][0] = v.z;
+	m[3][0] = 1.f;
+	return m;
+}
+
+Matrix viewport(int x,int y, int w, int h) {
+	Matrix m = Matrix::identity(4);
+
+	m[0][3] = x+w/2.f;
+	m[1][3] = y+h/2.f;
+	m[2][3] = DEPTH/2.f;
+
+	m[0][0] = w/2.f;
+	m[1][1] = h/2.f;
+	m[2][2] = DEPTH/2.f;
+
+	return m;
+}
+
 // Draws a wiremesh of a model (model.h) on Image (image.h)
 void draw_wire_mesh(Model *model, TGAImage &image)
 {
@@ -48,9 +82,11 @@ void draw_wire_mesh(Model *model, TGAImage &image)
 	float *zbuffer = new float[WIDTH * HEIGHT];
 	for (int i = WIDTH * HEIGHT; i--; zbuffer[i] = INT_MIN)
 		;
-
-	Vec3f light_dir(0,0,-1);
 	
+	Matrix projection = Matrix::identity(4);
+	Matrix viewPort = viewport(WIDTH/8,HEIGHT/8, WIDTH*3/4,HEIGHT*3/4);
+	projection[3][2] = -1.f/camera.z;
+
 	for (int i = 0; i < model->nfaces(); i++)
 	{
 		vector<int> face = model->face(i);
@@ -58,7 +94,7 @@ void draw_wire_mesh(Model *model, TGAImage &image)
 		Vec3f world_coords[3];
 
 		for (int j = 0; j < 3; j++) {
-			pts[j] = world2screen(model->vert(face[j]));
+			pts[j] = m2v(viewPort*projection*v2m(model->vert(face[j])));
 			world_coords[j] = model->vert(face[j]);
 		}
 
@@ -120,6 +156,7 @@ int main(int argc, char **argv)
 	// drawline(140,150,150,140,image,red);
 	// drawline(150,140,150,100,image,red);
 	// drawline(150,100,100,100,image,red);
+	
 	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
 	image.write_tga_file("output.tga");
 	return 0;
